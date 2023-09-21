@@ -7,14 +7,17 @@
 
 #include <GLFW/glfw3.h>
 
-static constexpr int HEIGHT = 600;
-static constexpr int WIDTH = 800;
+#include "core/io/Keyboard.h"
+#include "core/io/Mouse.h"
 
-static inline void framebuffer_resize_callback(GLFWwindow* window, int width, int height) {
-    glViewport(0, 0, width, height);
-}
+static inline void framebuffer_resize_callback(GLFWwindow* window, int width, int height);
 
 void processKey(GLFWwindow* window);
+
+static int height = 600;
+static int width = 800;
+static glm::vec3 cameraPosition;
+static glm::vec3 objectPosition(0.0f, 0.0f, -5.0f);
 
 int main() {
     glfwInit();
@@ -23,7 +26,7 @@ int main() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_OPENGL_API, GLFW_OPENGL_CORE_PROFILE);
 
-    GLFWwindow *window = glfwCreateWindow(WIDTH, HEIGHT, "OpenGL", nullptr, nullptr);
+    GLFWwindow *window = glfwCreateWindow(width, height, "OpenGL", nullptr, nullptr);
 
     if (!window) {
         std::cerr << "Failed to create GLFW Window.\n";
@@ -37,11 +40,16 @@ int main() {
         return -2;
     }
 
-    glViewport(0, 0, WIDTH, HEIGHT);
+    glViewport(0, 0, width, height);
 
     glfwSetFramebufferSizeCallback(window, framebuffer_resize_callback);
 
-    //glEnable(GL_DEPTH);
+    glEnable(GL_DEPTH);
+
+    glfwSetKeyCallback(window, Keyboard::keyCallback);
+    glfwSetMouseButtonCallback(window, Mouse::mouseButtonCallback);
+    glfwSetCursorPosCallback(window, Mouse::cursorPosCallback);
+    glfwSetScrollCallback(window, Mouse::mouseWheelCallback);
 
     unsigned int VAO = 0, VBO = 0;
     glGenVertexArrays(1, &VAO);
@@ -122,29 +130,52 @@ int main() {
 
     Shader shader("../src/shaders/vertex.glsl", "../src/shaders/fragment.glsl");
 
-    glm::mat4 mvp(1.0f);
+    cameraPosition = glm::vec3(0.0f, 0.0f, -0.0f);
 
-    glm::mat4 view(1.0f);
-    glm::mat4 projection(1.0f);
-    glm::mat4 model(1.0f);
-
-    model = glm::translate(model, glm::vec3(1.0f, 0.0f, 0.0f));
-    view = glm::translate(view, glm::vec3(-3.0f, 0.0f, 0.0f));
-    projection = glm::perspective(glm::radians(45.f), (float)((float)WIDTH / (float)HEIGHT), 0.1f, 100.f);
+    glfwSwapInterval(1);
 
     while (!glfwWindowShouldClose(window)) {
-        glfwPollEvents();
         processKey(window);
 
+        static double startTime = 0.0f;
+        static double endTime = 0.0f;
+
+        startTime = glfwGetTime();
+
         shader.Use();
+
+        glm::mat4 view(1.0f);
+        glm::mat4 projection(1.0f);
+        glm::mat4 model(1.0f);
+
+        // Order of models: Scale -> Rotation -> Translation
+        // Order of MVP: Projection -> View -> Model
+        // In practice, you multiply in reverse order.
+
+        model = glm::translate(model, glm::vec3(objectPosition.x, objectPosition.y, objectPosition.z));
+        model = glm::rotate(model, (float)glfwGetTime() * glm::radians(-55.f), glm::vec3(0.5f, 1.0f, 0.0f));
+        model = glm::scale(model, glm::vec3(1.3f, 1.0f, 1.0f));
+
+        view = glm::translate(view, cameraPosition);
+
+        projection = glm::perspective(glm::radians(45.f), (float)((float)width / (float)height), 0.1f, 100.f);
+
+        glm::mat4 mvp = projection * view * model;
+
         shader.setMatrix("matrix", glm::value_ptr(mvp));
 
         glClearColor(0.5f, 0.2f, 0.5f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         static constexpr int size = (int)std::size(vertices);
         glDrawArrays(GL_TRIANGLES, 0, size);
 
         glfwSwapBuffers(window);
+
+        Keyboard::update();
+        Mouse::update();
+
+        glfwPollEvents();
+
     }
 
     glDeleteBuffers(1, &VBO);
@@ -155,7 +186,25 @@ int main() {
 }
 
 void processKey(GLFWwindow* window) {
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-        glfwSetWindowShouldClose(window, true);
+    if (Keyboard::keyIsDown(GLFW_KEY_A)) {
+        objectPosition.x -= 0.03f;
     }
+
+    if (Keyboard::keyIsDown(GLFW_KEY_D)) {
+        objectPosition.x += 0.03f;
+    }
+
+    if (Keyboard::keyIsDown(GLFW_KEY_W)) {
+        objectPosition.y += 0.03f;
+    }
+
+    if (Keyboard::keyIsDown(GLFW_KEY_S)) {
+        objectPosition.y -= 0.03f;
+    }
+}
+
+void framebuffer_resize_callback(GLFWwindow* window, int w, int h) {
+    glViewport(0, 0, w, h);
+    width = w;
+    height = h;
 }

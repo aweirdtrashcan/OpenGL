@@ -12,7 +12,13 @@ add_executable(OpenGL
         src/core/Image.cpp
         src/core/Image.h
         src/core/Texture.cpp
-        src/core/Texture.h)
+        src/core/Texture.h
+        src/core/io/Keyboard.cpp
+        src/core/io/Keyboard.h
+        src/core/io/Mouse.cpp
+        src/core/io/Mouse.h
+        src/core/io/Joystick.cpp
+        src/core/io/Joystick.h)
 
 include_directories("${CMAKE_SOURCE_DIR}/ThirdParty/include")
 include_directories("${CMAKE_SOURCE_DIR}/src")
