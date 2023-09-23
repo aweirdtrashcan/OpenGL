@@ -210,6 +210,11 @@ void processKey(GLFWwindow* window) {
     if (Keyboard::keyIsDown(GLFW_KEY_V) && Keyboard::keyWasUp(GLFW_KEY_V)) {
         static bool vSync = false;
         vSync = !vSync;
+        if (vSync) {
+            std::cout << "vSync enabled!\n";
+        } else {
+            std::cout << "vSync disabled!\n";
+        }
         glfwSwapInterval(vSync);
     }
 }
