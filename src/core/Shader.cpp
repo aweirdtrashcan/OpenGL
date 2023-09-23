@@ -44,6 +44,9 @@ Shader::Shader(const std::string& vertexPath, const std::string& fragmentPath) {
         _break();
     }
 
+    glDeleteShader(vertShader);
+    glDeleteShader(fragShader);
+
     std::cout << "Shader created successfully!\n";
 }
 
@@ -114,4 +117,8 @@ bool Shader::checkGlError(unsigned int id, Shader::GlStatus status) {
 
 void Shader::Use() const {
     glUseProgram(ID);
+}
+
+void Shader::earlyDestroy() {
+    glDeleteProgram(ID);
 }

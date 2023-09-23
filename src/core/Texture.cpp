@@ -8,10 +8,12 @@
 
 #include <glad/glad.h>
 
-Texture::Texture(const Image& image, Texture::Type type, Texture::Format format) {
+Texture::Texture(const Image& image, Texture::Type type, Texture::Format format, uint32_t textureNumber) {
     glGenTextures(1, &id);
 
     GLint glFormat = format == Format::RGB ? GL_RGB : GL_RGBA;
+
+    glActiveTexture(textureNumber);
 
     switch (type) {
         case Type::TYPE_1D: {
@@ -26,10 +28,11 @@ Texture::Texture(const Image& image, Texture::Type type, Texture::Format format)
                          GL_UNSIGNED_BYTE,
                          image.getConstHandle());
             glGenerateMipmap(glTextureType);
-            glBindTexture(glTextureType, 0);
+            glBindTexture(glTextureType, id);
         } break;
         case Type::TYPE_1D_ARRAY: { break; }
         case Type::TYPE_2D: {
+            glTextureType = GL_TEXTURE_2D;
             glBindTexture(glTextureType, id);
             glTexImage2D(glTextureType,
                          0,
@@ -41,10 +44,11 @@ Texture::Texture(const Image& image, Texture::Type type, Texture::Format format)
                          GL_UNSIGNED_BYTE,
                          image.getConstHandle());
             glGenerateMipmap(glTextureType);
-            glBindTexture(glTextureType, 0);
+            glBindTexture(glTextureType, id);
+            break;
         }
-        case Type::TYPE_2D_ARRAY: { break; }
-        case Type::TYPE_3D: { break; }
+        case Type::TYPE_2D_ARRAY:
+        case Type::TYPE_3D:
         case Type::TYPE_3D_ARRAY: { break; }
         default: { std::cout << "Unknown Texture::Type\n"; _break(); }
     }

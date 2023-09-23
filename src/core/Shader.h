@@ -18,6 +18,8 @@ public:
 
     void Use() const;
 
+    void earlyDestroy();
+
 private:
     static std::string readShaderFile(const char* path);
 

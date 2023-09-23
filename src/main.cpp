@@ -9,15 +9,77 @@
 
 #include "core/io/Keyboard.h"
 #include "core/io/Mouse.h"
+#include "core/Image.h"
+#include "core/Texture.h"
 
 static inline void framebuffer_resize_callback(GLFWwindow* window, int width, int height);
 
 void processKey(GLFWwindow* window);
 
+void processObjectMovement(glm::vec3 &objPos);
+void processObjectScale(glm::vec3 &objScale);
+void shouldReset(glm::vec3 &objPos, glm::vec3 &objScale);
+
 static int height = 600;
 static int width = 800;
-static glm::vec3 cameraPosition;
-static glm::vec3 objectPosition(0.0f, 0.0f, -5.0f);
+static double deltaTime;
+
+struct vertex {
+    struct {
+        float x = 0;
+        float y = 0;
+        float z = 0;
+    } pos;
+
+    struct {
+        float u = 0;
+        float v = 0;
+    } texCoord;
+};
+
+static const vertex vertices[] = {
+        {-0.5f, -0.5f, -0.5f, 0.0f, 0.0f},
+        {0.5f, -0.5f, -0.5f, 1.0f, 0.0f},
+        {0.5f, 0.5f, -0.5f, 1.0f, 1.0f},
+        {0.5f, 0.5f, -0.5f, 1.0f, 1.0f},
+        {-0.5f, 0.5f, -0.5f, 0.0f, 1.0f},
+        {-0.5f, -0.5f, -0.5f, 0.0f, 0.0f},
+
+        {-0.5f, -0.5f, 0.5f, 0.0f, 0.0f},
+        {0.5f, -0.5f, 0.5f, 1.0f, 0.0f},
+        {0.5f, 0.5f, 0.5f, 1.0f, 1.0f},
+        {0.5f, 0.5f, 0.5f, 1.0f, 1.0f},
+        {-0.5f, 0.5f, 0.5f, 0.0f, 1.0f},
+        {-0.5f, -0.5f, 0.5f, 0.0f, 0.0f},
+
+        {-0.5f, 0.5f, 0.5f, 1.0f, 0.0f},
+        {-0.5f, 0.5f, -0.5f, 1.0f, 1.0f},
+        {-0.5f, -0.5f, -0.5f, 0.0f, 1.0f},
+        {-0.5f, -0.5f, -0.5f, 0.0f, 1.0f},
+        {-0.5f, -0.5f, 0.5f, 0.0f, 0.0f},
+        {-0.5f, 0.5f, 0.5f, 1.0f, 0.0f},
+
+        {0.5f, 0.5f, 0.5f, 1.0f, 0.0f},
+        {0.5f,  0.5f, -0.5f,  1.0f, 1.0f},
+        {0.5f, -0.5f, -0.5f,  0.0f, 1.0f},
+        {0.5f, -0.5f, -0.5f,  0.0f, 1.0f},
+        {0.5f, -0.5f,  0.5f,  0.0f, 0.0f},
+        {0.5f,  0.5f,  0.5f,  1.0f, 0.0f},
+
+        {-0.5f, -0.5f, -0.5f,  0.0f, 1.0f},
+        {0.5f, -0.5f, -0.5f,  1.0f, 1.0f},
+        {0.5f, -0.5f,  0.5f,  1.0f, 0.0f},
+        {0.5f, -0.5f,  0.5f,  1.0f, 0.0f},
+        {-0.5f, -0.5f,  0.5f,  0.0f, 0.0f},
+        {-0.5f, -0.5f, -0.5f,  0.0f, 1.0f},
+
+        {-0.5f,  0.5f, -0.5f,  0.0f, 1.0f},
+        {0.5f,  0.5f, -0.5f,  1.0f, 1.0f},
+        {0.5f,  0.5f,  0.5f,  1.0f, 0.0f},
+        {0.5f,  0.5f,  0.5f,  1.0f, 0.0f},
+        {-0.5f,  0.5f,  0.5f,  0.0f, 0.0f},
+        {-0.5f,  0.5f, -0.5f,  0.0f, 1.0f}
+};
 
 int main() {
     glfwInit();
@@ -44,8 +106,6 @@ int main() {
 
     glfwSetFramebufferSizeCallback(window, framebuffer_resize_callback);
 
-    glEnable(GL_DEPTH);
-
     glfwSetKeyCallback(window, Keyboard::keyCallback);
     glfwSetMouseButtonCallback(window, Mouse::mouseButtonCallback);
     glfwSetCursorPosCallback(window, Mouse::cursorPosCallback);
@@ -54,69 +114,6 @@ int main() {
     unsigned int VAO = 0, VBO = 0;
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
-
-    struct vertex {
-        struct {
-            float x = 0;
-            float y = 0;
-            float z = 0;
-        } pos;
-
-        struct {
-            float u = 0;
-            float v = 0;
-        } texCoord;
-    };
-
-    const vertex vertices[] = {
-            {-0.5f, -0.5f, -0.5f, 0.0f, 0.0f},
-            {0.5f, -0.5f, -0.5f, 1.0f, 0.0f},
-            {0.5f, 0.5f, -0.5f, 1.0f, 1.0f},
-            {0.5f, 0.5f, -0.5f, 1.0f, 1.0f},
-            {-0.5f, 0.5f, -0.5f, 0.0f, 1.0f},
-            {-0.5f, -0.5f, -0.5f, 0.0f, 0.0f},
-
-            {-0.5f, -0.5f, 0.5f, 0.0f, 0.0f},
-            {0.5f, -0.5f, 0.5f, 1.0f, 0.0f},
-            {0.5f, 0.5f, 0.5f, 1.0f, 1.0f},
-            {0.5f, 0.5f, 0.5f, 1.0f, 1.0f},
-            {-0.5f, 0.5f, 0.5f, 0.0f, 1.0f},
-            {-0.5f, -0.5f, 0.5f, 0.0f, 0.0f},
-
-            {-0.5f, 0.5f, 0.5f, 1.0f, 0.0f},
-            {-0.5f, 0.5f, -0.5f, 1.0f, 1.0f},
-            {-0.5f, -0.5f, -0.5f, 0.0f, 1.0f},
-            {-0.5f, -0.5f, -0.5f, 0.0f, 1.0f},
-            {-0.5f, -0.5f, 0.5f, 0.0f, 0.0f},
-            {-0.5f, 0.5f, 0.5f, 1.0f, 0.0f},
-
-            {0.5f, 0.5f, 0.5f, 1.0f, 0.0f},
-            {0.5f,  0.5f, -0.5f,  1.0f, 1.0f},
-            {0.5f, -0.5f, -0.5f,  0.0f, 1.0f},
-            {0.5f, -0.5f, -0.5f,  0.0f, 1.0f},
-            {0.5f, -0.5f,  0.5f,  0.0f, 0.0f},
-            {0.5f,  0.5f,  0.5f,  1.0f, 0.0f},
-
-            {-0.5f, -0.5f, -0.5f,  0.0f, 1.0f},
-            {0.5f, -0.5f, -0.5f,  1.0f, 1.0f},
-            {0.5f, -0.5f,  0.5f,  1.0f, 0.0f},
-            {0.5f, -0.5f,  0.5f,  1.0f, 0.0f},
-            {-0.5f, -0.5f,  0.5f,  0.0f, 0.0f},
-            {-0.5f, -0.5f, -0.5f,  0.0f, 1.0f},
-
-            {-0.5f,  0.5f, -0.5f,  0.0f, 1.0f},
-            {0.5f,  0.5f, -0.5f,  1.0f, 1.0f},
-            {0.5f,  0.5f,  0.5f,  1.0f, 0.0f},
-            {0.5f,  0.5f,  0.5f,  1.0f, 0.0f},
-            {-0.5f,  0.5f,  0.5f,  0.0f, 0.0f},
-            {-0.5f,  0.5f, -0.5f,  0.0f, 1.0f}
-    };
-
-//    const float vertices[] = {
-//            0.0f, 0.5f, 0.0f, 0.0f, 0.0f,
-//            -0.5f, -0.5f, 0.0f, 0.0f, 0.0f,
-//            0.5f, -0.5f, 0.0f, 0.0f, 0.0f
-//    };
 
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -129,24 +126,43 @@ int main() {
     glEnableVertexAttribArray(1);
 
     Shader shader("../src/shaders/vertex.glsl", "../src/shaders/fragment.glsl");
+    Image container("../assets/awesomeface.png");
+    Texture tex(container, Texture::Type::TYPE_2D, Texture::Format::RGBA, 0);
 
-    cameraPosition = glm::vec3(0.0f, 0.0f, -0.0f);
+    glfwSwapInterval(0);
 
-    glfwSwapInterval(1);
+    glEnable(GL_DEPTH_TEST);
 
     while (!glfwWindowShouldClose(window)) {
-        processKey(window);
-
         static double startTime = 0.0f;
-        static double endTime = 0.0f;
+        static double lastSecond;
+        static int frameCount;
 
+        frameCount++;
+        deltaTime = glfwGetTime() - startTime;
         startTime = glfwGetTime();
 
+        processKey(window);
+
+        if ((glfwGetTime() - lastSecond) >= 1.0) {
+            std::cout << "FPS: " << frameCount << "\n";
+            frameCount = 0;
+            lastSecond = glfwGetTime();
+        }
+
         shader.Use();
+        tex.bind();
 
         glm::mat4 view(1.0f);
         glm::mat4 projection(1.0f);
         glm::mat4 model(1.0f);
+        static glm::vec3 cameraPosition(0.0f);
+        static glm::vec3 objectPosition(0.0f, 0.0f, -5.0f);
+        static glm::vec3 objectScale(1.0f);
+        processObjectMovement(objectPosition);
+        processObjectScale(objectScale);
+        shouldReset(objectPosition, objectScale);
+
 
         // Order of models: Scale -> Rotation -> Translation
         // Order of MVP: Projection -> View -> Model
@@ -154,7 +170,7 @@ int main() {
 
         model = glm::translate(model, glm::vec3(objectPosition.x, objectPosition.y, objectPosition.z));
         model = glm::rotate(model, (float)glfwGetTime() * glm::radians(-55.f), glm::vec3(0.5f, 1.0f, 0.0f));
-        model = glm::scale(model, glm::vec3(1.3f, 1.0f, 1.0f));
+        model = glm::scale(model, objectScale);
 
         view = glm::translate(view, cameraPosition);
 
@@ -175,31 +191,69 @@ int main() {
         Mouse::update();
 
         glfwPollEvents();
-
     }
 
     glDeleteBuffers(1, &VBO);
     glDeleteVertexArrays(1, &VAO);
+    glfwDestroyWindow(window);
     glfwTerminate();
 
     return 0;
 }
 
 void processKey(GLFWwindow* window) {
+
+    if (Keyboard::keyIsDown(GLFW_KEY_ESCAPE)) {
+        glfwSetWindowShouldClose(window, true);
+    }
+
+    if (Keyboard::keyIsDown(GLFW_KEY_V) && Keyboard::keyWasUp(GLFW_KEY_V)) {
+        static bool vSync = false;
+        vSync = !vSync;
+        glfwSwapInterval(vSync);
+    }
+}
+
+void processObjectMovement(glm::vec3 &objPos) {
     if (Keyboard::keyIsDown(GLFW_KEY_A)) {
-        objectPosition.x -= 0.03f;
+        objPos.x -= 1.0f * (float)deltaTime;
     }
 
     if (Keyboard::keyIsDown(GLFW_KEY_D)) {
-        objectPosition.x += 0.03f;
+        objPos.x += 1.0f * (float)deltaTime;
     }
 
     if (Keyboard::keyIsDown(GLFW_KEY_W)) {
-        objectPosition.y += 0.03f;
+        objPos.y += 1.0f * (float)deltaTime;
     }
 
     if (Keyboard::keyIsDown(GLFW_KEY_S)) {
-        objectPosition.y -= 0.03f;
+        objPos.y -= 1.0f * (float)deltaTime;
+    }
+}
+
+void processObjectScale(glm::vec3 &objScale) {
+    if (Keyboard::keyIsDown(GLFW_KEY_LEFT)) {
+        objScale.x -= 1.0f * (float)deltaTime;
+    }
+
+    if (Keyboard::keyIsDown(GLFW_KEY_RIGHT)) {
+        objScale.x += 1.0f * (float)deltaTime;
+    }
+
+    if (Keyboard::keyIsDown(GLFW_KEY_UP)) {
+        objScale.y += 1.0f * (float)deltaTime;
+    }
+
+    if (Keyboard::keyIsDown(GLFW_KEY_DOWN)) {
+        objScale.y -= 1.0f * (float)deltaTime;
+    }
+}
+
+void shouldReset(glm::vec3 &objPos, glm::vec3 &objScale) {
+    if (Keyboard::keyIsDown(GLFW_KEY_C) && Keyboard::keyWasUp(GLFW_KEY_C)) {
+        objPos = glm::vec3(0.0f, 0.0f, -5.0f);
+        objScale = glm::vec3(1.0f);
     }
 }
 

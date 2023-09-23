@@ -12,7 +12,11 @@
 Image::Image(const std::string &imagePath) {
     data = stbi_load(imagePath.c_str(), &m_Width, &m_Height, &m_NrChannels, 0);
 
-    std::cout << "Created image successfully!\n";
+    if (data == nullptr) {
+        std::cerr << "Failed to load image in: " << imagePath << "\n";
+    } else {
+        std::cout << "Created image successfully!\n";
+    }
 }
 
 Image::~Image() {

@@ -27,7 +27,7 @@ public:
     };
 
 public:
-    Texture(const Image& image, Texture::Type type, Texture::Format format);
+    Texture(const Image& image, Texture::Type type, Texture::Format format, uint32_t textureNumber);
     ~Texture() = default;
 
     void bind() const;
