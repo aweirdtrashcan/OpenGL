@@ -18,7 +18,9 @@ add_executable(OpenGL
         src/core/io/Mouse.cpp
         src/core/io/Mouse.h
         src/core/io/Joystick.cpp
-        src/core/io/Joystick.h)
+        src/core/io/Joystick.h
+        src/core/camera/Camera.cpp
+        src/core/camera/Camera.h)
 
 include_directories("${CMAKE_SOURCE_DIR}/ThirdParty/include")
 include_directories("${CMAKE_SOURCE_DIR}/src")

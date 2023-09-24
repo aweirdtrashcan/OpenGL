@@ -6,6 +6,8 @@
 #include <glad/glad.c>
 
 #include <GLFW/glfw3.h>
+#include <format>
+#include <numbers>
 
 #include "core/io/Keyboard.h"
 #include "core/io/Mouse.h"
@@ -19,10 +21,18 @@ void processKey(GLFWwindow* window);
 void processObjectMovement(glm::vec3 &objPos);
 void processObjectScale(glm::vec3 &objScale);
 void shouldReset(glm::vec3 &objPos, glm::vec3 &objScale);
+void printVec3(const char *message, const glm::vec3& v);
 
 static int height = 600;
 static int width = 800;
 static double deltaTime;
+
+glm::vec3 cameraPos     = glm::vec3(0.0f, 0.0f, -5.0f);
+glm::vec3 cameraFront   = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 cameraUp      = glm::vec3(0.0f, 1.0f, 0.0f);
+
+glm::vec3 objectPosition(0.0f);
+glm::vec3 objectScale(1.0f);
 
 struct vertex {
     struct {
@@ -137,6 +147,23 @@ int main() {
         static double startTime = 0.0f;
         static double lastSecond;
         static int frameCount;
+        glm::mat4 view(1.0f);
+        glm::mat4 projection(1.0f);
+        glm::mat4 model(1.0f);
+
+        /*
+         * LookAt Matrix:
+         * [ Right Vector,      Pos.x ]
+         * [ Up Vector,         Pos.y ]
+         * [ Direction Vector,  Pos.z ]
+         * [            0             ]
+         * */
+
+//        constexpr float radius = 10.f;
+//        float camX = cos(glfwGetTime()) * radius;
+//        float camY = sin(glfwGetTime()) * radius;
+
+        glm::mat4 lookAt = glm::lookAt(cameraPos, cameraFront, cameraUp);
 
         frameCount++;
         deltaTime = glfwGetTime() - startTime;
@@ -145,7 +172,7 @@ int main() {
         processKey(window);
 
         if ((glfwGetTime() - lastSecond) >= 1.0) {
-            std::cout << "FPS: " << frameCount << "\n";
+            printf("FPS: %d\n", frameCount);
             frameCount = 0;
             lastSecond = glfwGetTime();
         }
@@ -153,16 +180,9 @@ int main() {
         shader.Use();
         tex.bind();
 
-        glm::mat4 view(1.0f);
-        glm::mat4 projection(1.0f);
-        glm::mat4 model(1.0f);
-        static glm::vec3 cameraPosition(0.0f);
-        static glm::vec3 objectPosition(0.0f, 0.0f, -5.0f);
-        static glm::vec3 objectScale(1.0f);
         processObjectMovement(objectPosition);
         processObjectScale(objectScale);
         shouldReset(objectPosition, objectScale);
-
 
         // Order of models: Scale -> Rotation -> Translation
         // Order of MVP: Projection -> View -> Model
@@ -172,7 +192,7 @@ int main() {
         model = glm::rotate(model, (float)glfwGetTime() * glm::radians(-55.f), glm::vec3(0.5f, 1.0f, 0.0f));
         model = glm::scale(model, objectScale);
 
-        view = glm::translate(view, cameraPosition);
+        view = lookAt;
 
         projection = glm::perspective(glm::radians(45.f), (float)((float)width / (float)height), 0.1f, 100.f);
 
@@ -201,6 +221,12 @@ int main() {
     return 0;
 }
 
+void printVec3(const char *message, const glm::vec3& v) {
+    printf("===========================================\n");
+    std::cout << std::format("{} (x = {}, y = {}, z = {})\n", message, v.x, v.y, v.z);
+    printf("===========================================\n");
+}
+
 void processKey(GLFWwindow* window) {
 
     if (Keyboard::keyIsDown(GLFW_KEY_ESCAPE)) {
@@ -220,20 +246,21 @@ void processKey(GLFWwindow* window) {
 }
 
 void processObjectMovement(glm::vec3 &objPos) {
+    const float cameraSpeed = 3.0f * (float)deltaTime;
     if (Keyboard::keyIsDown(GLFW_KEY_A)) {
-        objPos.x -= 1.0f * (float)deltaTime;
+        objPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
     }
 
     if (Keyboard::keyIsDown(GLFW_KEY_D)) {
-        objPos.x += 1.0f * (float)deltaTime;
+        objPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
     }
 
     if (Keyboard::keyIsDown(GLFW_KEY_W)) {
-        objPos.y += 1.0f * (float)deltaTime;
+        objPos += cameraSpeed * cameraFront;
     }
 
     if (Keyboard::keyIsDown(GLFW_KEY_S)) {
-        objPos.y -= 1.0f * (float)deltaTime;
+        objPos -= cameraSpeed * cameraFront;
     }
 }
 
