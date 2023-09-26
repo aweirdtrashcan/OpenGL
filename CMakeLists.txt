@@ -30,5 +30,5 @@ if (WIN32)
     set(CMAKE_CXX_FLAGS "-static -static-libstdc++ -static-libgcc")
 
 elseif (LINUX)
-    target_link_libraries(OpenGL glfw)
+    target_link_libraries(OpenGL "${CMAKE_SOURCE_DIR}/ThirdParty/linux_x86-64-libs/libglfw3-x11-gcc.a")
 endif ()
