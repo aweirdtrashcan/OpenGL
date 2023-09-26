@@ -18,13 +18,15 @@ add_executable(OpenGL
         src/core/io/Mouse.cpp
         src/core/io/Mouse.h
         src/core/io/Joystick.cpp
-        src/core/io/Joystick.h)
+        src/core/io/Joystick.h
+        src/core/Camera.cpp
+        src/core/Camera.h)
 
 include_directories("${CMAKE_SOURCE_DIR}/ThirdParty/include")
 include_directories("${CMAKE_SOURCE_DIR}/src")
 
 if (WIN32)
-    target_link_libraries(OpenGL "${CMAKE_SOURCE_DIR}/ThirdParty/win32-libs/glfw3dll.lib")
+    target_link_libraries(OpenGL "${CMAKE_SOURCE_DIR}/ThirdParty/win32-libs/libglfw3.a")
     set(CMAKE_CXX_FLAGS "-static -static-libstdc++ -static-libgcc")
 
 elseif (LINUX)

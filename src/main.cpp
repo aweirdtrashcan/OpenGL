@@ -22,17 +22,25 @@ void processObjectMovement(glm::vec3 &objPos);
 void processObjectScale(glm::vec3 &objScale);
 void shouldReset(glm::vec3 &objPos, glm::vec3 &objScale);
 void printVec3(const char *message, const glm::vec3& v);
+void mouseCallback(GLFWwindow* window, double xPos, double yPos);
+void scrollCallback(GLFWwindow* window, double xOffset, double yOffset);
 
 static int height = 600;
 static int width = 800;
 static double deltaTime;
 
-glm::vec3 cameraPos     = glm::vec3(0.0f, 0.0f, -5.0f);
-glm::vec3 cameraFront   = glm::vec3(0.0f, 0.0f, -1.0f);
-glm::vec3 cameraUp      = glm::vec3(0.0f, 1.0f, 0.0f);
+static float yaw = -89.f;
+static float pitch = 0.0f;
+static float fov = 45.f;
 
-glm::vec3 objectPosition(0.0f);
-glm::vec3 objectScale(1.0f);
+static glm::vec3 cameraPos     = glm::vec3(0.0f, 0.0f, 3.0f);
+static glm::vec3 cameraFront   = glm::vec3(0.0f, 0.0f, -1.0f);
+static glm::vec3 cameraUp      = glm::vec3(0.0f, 1.0f, 0.0f);
+
+static glm::vec3 objectPosition(0.0f);
+static glm::vec3 objectScale(1.0f);
+
+static bool firstMove = true;
 
 struct vertex {
     struct {
@@ -114,12 +122,12 @@ int main() {
 
     glViewport(0, 0, width, height);
 
-    glfwSetFramebufferSizeCallback(window, framebuffer_resize_callback);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
+    glfwSetFramebufferSizeCallback(window, framebuffer_resize_callback);
+    glfwSetCursorPosCallback(window, mouseCallback);
     glfwSetKeyCallback(window, Keyboard::keyCallback);
-    glfwSetMouseButtonCallback(window, Mouse::mouseButtonCallback);
-    glfwSetCursorPosCallback(window, Mouse::cursorPosCallback);
-    glfwSetScrollCallback(window, Mouse::mouseWheelCallback);
+    glfwSetScrollCallback(window, scrollCallback);
 
     unsigned int VAO = 0, VBO = 0;
     glGenVertexArrays(1, &VAO);
@@ -163,8 +171,6 @@ int main() {
 //        float camX = cos(glfwGetTime()) * radius;
 //        float camY = sin(glfwGetTime()) * radius;
 
-        glm::mat4 lookAt = glm::lookAt(cameraPos, cameraFront, cameraUp);
-
         frameCount++;
         deltaTime = glfwGetTime() - startTime;
         startTime = glfwGetTime();
@@ -180,7 +186,7 @@ int main() {
         shader.Use();
         tex.bind();
 
-        processObjectMovement(objectPosition);
+        processObjectMovement(cameraPos);
         processObjectScale(objectScale);
         shouldReset(objectPosition, objectScale);
 
@@ -192,9 +198,9 @@ int main() {
         model = glm::rotate(model, (float)glfwGetTime() * glm::radians(-55.f), glm::vec3(0.5f, 1.0f, 0.0f));
         model = glm::scale(model, objectScale);
 
-        view = lookAt;
+        view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
-        projection = glm::perspective(glm::radians(45.f), (float)((float)width / (float)height), 0.1f, 100.f);
+        projection = glm::perspective(glm::radians(fov), (float)((float)width / (float)height), 0.1f, 100.f);
 
         glm::mat4 mvp = projection * view * model;
 
@@ -225,6 +231,16 @@ void printVec3(const char *message, const glm::vec3& v) {
     printf("===========================================\n");
     std::cout << std::format("{} (x = {}, y = {}, z = {})\n", message, v.x, v.y, v.z);
     printf("===========================================\n");
+}
+
+void scrollCallback(GLFWwindow* window, double xOffset, double yOffset) {
+    fov -= (float)yOffset;
+    if (fov < 1.0f) {
+        fov = 1.0f;
+    }
+    if (fov > 120.f) {
+        fov = 120.f;
+    }
 }
 
 void processKey(GLFWwindow* window) {
@@ -287,6 +303,10 @@ void shouldReset(glm::vec3 &objPos, glm::vec3 &objScale) {
         objPos = glm::vec3(0.0f, 0.0f, -5.0f);
         objScale = glm::vec3(1.0f);
     }
+}
+
+void mouseCallback(GLFWwindow* window, double xPos, double yPos) {
+
 }
 
 void framebuffer_resize_callback(GLFWwindow* window, int w, int h) {
